@@ -3,352 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TERMUX // NETWORK ANALYZER</title>
+    <title>~ $ termux-investigation-tool</title>
     <style>
         :root {
             --termux-bg: #000000;
             --termux-green: #00ff41;
-            --termux-dim: #003b00;
-            --termux-white: #d1d1d1;
-            --termux-red: #ff0000;
-            --termux-yellow: #ffb000;
-            --termux-blue: #00ffff;
-            --glow: 0 0 5px rgba(0, 255, 65, 0.5);
+            --termux-blue: #5294e2;
+            --termux-white: #ffffff;
+            --termux-red: #ff5555;
+            --termux-yellow: #f1fa8c;
+            --termux-dim: #282a36;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            scrollbar-width: thin;
-            scrollbar-color: var(--termux-dim) var(--termux-bg);
+            cursor: crosshair;
         }
 
         body {
             background-color: var(--termux-bg);
             color: var(--termux-green);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'monospace', 'Courier New', Courier, monospace;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            border: 2px solid var(--termux-dim);
+            border: 1px solid var(--termux-dim);
         }
 
-        /* CABEÇALHO ESTILO TERMUX */
+        /* CABEÇALHO TERMUX */
         header {
-            padding: 10px;
-            background: #111;
-            border-bottom: 1px solid var(--termux-green);
+            background-color: #1a1a1a;
+            padding: 5px 15px;
             font-size: 12px;
-            text-shadow: var(--glow);
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--termux-green);
+            color: var(--termux-white);
         }
 
-        .ascii-art {
-            font-size: 8px;
-            line-height: 8px;
-            white-space: pre;
-            margin-bottom: 5px;
+        .ascii-logo {
+            font-size: 6px;
+            line-height: 6px;
             color: var(--termux-blue);
+            margin: 10px;
+            white-space: pre;
         }
 
-        /* ÁREA DE STATUS */
-        .status-grid {
+        /* GRID DE DADOS EM TEMPO REAL */
+        .telemetry-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 5px;
-            padding: 10px;
-            background: #050505;
             border-bottom: 1px solid var(--termux-dim);
-            font-size: 11px;
+            background: #080808;
         }
 
-        .stat-item { border-left: 2px solid var(--termux-dim); padding-left: 5px; }
-        .stat-label { color: var(--termux-white); opacity: 0.7; }
-        .stat-value { color: var(--termux-blue); font-weight: bold; }
-
-        /* PAINEL PRINCIPAL */
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        .telemetry-item {
+            padding: 8px;
+            border: 1px solid var(--termux-dim);
+            font-size: 10px;
         }
 
-        #terminal-output {
+        .label { color: var(--termux-white); opacity: 0.6; }
+        .value { color: var(--termux-yellow); font-weight: bold; }
+
+        /* TERMINAL DE OUTPUT */
+        #terminal {
             flex: 1;
-            padding: 15px;
             overflow-y: auto;
-            font-size: 12px;
-            line-height: 1.4;
-            background: linear-gradient(180deg, #000 0%, #050505 100%);
+            padding: 15px;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.95);
+            line-height: 1.5;
         }
 
-        .log-line { margin-bottom: 4px; display: flex; }
-        .log-ts { color: var(--termux-white); opacity: 0.5; margin-right: 8px; flex-shrink: 0; }
-        .log-tag { margin-right: 8px; font-weight: bold; }
+        .log-entry { margin-bottom: 5px; }
+        .ts { color: #888; margin-right: 5px; }
+        .tag { font-weight: bold; margin-right: 10px; }
         .tag-sys { color: var(--termux-blue); }
         .tag-gps { color: var(--termux-yellow); }
         .tag-net { color: var(--termux-green); }
         .tag-err { color: var(--termux-red); }
 
-        /* LISTA DE REDES (MODERNO MAS TERMINAL) */
-        .network-card {
-            border: 1px solid var(--termux-dim);
-            margin: 10px 0;
+        /* LISTAGEM DE ALVOS (WIFI) */
+        .target-list {
             padding: 10px;
-            background: rgba(0, 59, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid var(--termux-dim);
         }
 
-        .card-header {
+        .target-item {
+            border-left: 3px solid var(--termux-green);
+            background: #111;
+            padding: 8px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
-            border-bottom: 1px solid var(--termux-dim);
-            padding-bottom: 5px;
-            margin-bottom: 5px;
         }
 
-        .ssid-name { font-weight: bold; color: var(--termux-white); }
-        .signal-pct { color: var(--termux-blue); }
+        .target-info { font-size: 10px; }
+        .target-name { color: var(--termux-white); font-weight: bold; }
 
-        /* RODAPÉ E COMANDOS */
+        /* BARRA DE COMANDO INFERIOR */
         footer {
-            height: 50px;
+            height: 40px;
+            background: #000;
             border-top: 1px solid var(--termux-green);
             display: flex;
             align-items: center;
-            padding: 0 10px;
-            background: #000;
+            padding: 0 15px;
+            font-size: 12px;
         }
 
         .prompt { color: var(--termux-white); margin-right: 10px; }
-        .cursor {
-            width: 8px;
-            height: 15px;
-            background: var(--termux-green);
-            animation: blink 1s infinite;
-        }
+        .cursor { width: 8px; height: 16px; background: var(--termux-green); animation: blink 0.8s infinite; }
 
         @keyframes blink { 50% { opacity: 0; } }
 
-        /* BOTÃO DE AÇÃO */
-        .action-btn {
+        /* BOTÃO FLUTUANTE DE SCAN */
+        #scan-trigger {
             position: fixed;
-            bottom: 70px;
+            bottom: 60px;
             right: 20px;
-            background: var(--termux-bg);
+            background: transparent;
             border: 1px solid var(--termux-green);
             color: var(--termux-green);
-            padding: 15px;
+            padding: 10px 20px;
             font-family: inherit;
-            box-shadow: var(--glow);
-            z-index: 100;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
         }
 
-        .action-btn:active { background: var(--termux-dim); }
+        #scan-trigger:active { background: var(--termux-green); color: #000; }
     </style>
 </head>
 <body>
 
 <header>
-<div class="ascii-art">
-██████╗ ███████╗ █████╗ ██╗     
-██╔══██╗██╔════╝██╔══██╗██║     
-██████╔╝█████╗  ███████║██║     
-██╔══██╗██╔══╝  ██╔══██║██║     
-██║  ██║███████╗██║  ██║███████╗
-╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝
-NETWORK SCANNER // TERMUX_CORE_V2
-</div>
-    <div>SISTEMA DE RASTREAMENTO DE SINAL - NOVLE GOV.</div>
+    <span>GNU nano 8.7.1 - server.js (MODIFIED)</span>
+    <span>Investigação v4.2.0</span>
 </header>
 
-<div class="status-grid">
-    <div class="stat-item">
-        <div class="stat-label">COORD_X:</div>
-        <div id="disp-lat" class="stat-value">---</div>
+<div class="ascii-logo">
+ ██████╗ ███████╗ █████╗ ██╗      ██████╗  ██████╗ ██████╗ ███████╗
+ ██╔══██╗██╔════╝██╔══██╗██║     ██╔════╝ ██╔═══██╗██╔══██╗██╔════╝
+ ██████╔╝█████╗  ███████║██║     ██║  ███╗██║   ██║██████╔╝█████╗  
+ ██╔══██╗██╔══╝  ██╔══██║██║     ██║   ██║██║   ██║██╔══██╗██╔══╝  
+ ██║  ██║███████╗██║  ██║███████╗╚██████╔╝╚██████╔╝██║  ██║███████╗
+ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝
+</div>
+
+<div class="telemetry-grid">
+    <div class="telemetry-item">
+        <span class="label">LAT:</span> <span id="lat" class="value">0.000000</span>
     </div>
-    <div class="stat-item">
-        <div class="stat-label">COORD_Y:</div>
-        <div id="disp-lon" class="stat-value">---</div>
+    <div class="telemetry-item">
+        <span class="label">LON:</span> <span id="lon" class="value">0.000000</span>
     </div>
-    <div class="stat-item">
-        <div class="stat-label">PRECISÃO:</div>
-        <div id="disp-acc" class="stat-value">0m</div>
+    <div class="telemetry-item">
+        <span class="label">PRECISÃO:</span> <span id="acc" class="value">0m</span>
     </div>
-    <div class="stat-item">
-        <div class="stat-label">ALTITUDE:</div>
-        <div id="disp-alt" class="stat-value">0m</div>
+    <div class="telemetry-item">
+        <span class="label">ALVOS:</span> <span id="alvos-count" class="value">0</span>
     </div>
 </div>
 
-<main>
-    <div id="terminal-output">
-        <div class="log-line">
-            <span class="log-ts">[18:00:01]</span>
-            <span class="log-tag tag-sys">[SYS]</span>
-            <span>Kernel carregado. Aguardando comandos...</span>
-        </div>
-    </div>
-</main>
+<div id="terminal">
+    <div class="log-entry"><span class="ts">[16:59:01]</span> <span class="tag tag-sys">[SYS]</span> Conectado ao Núcleo SKYNET porta 8080.</div>
+</div>
 
-<button class="action-btn" onclick="requestScan()">FORÇAR SCAN</button>
+<div class="target-list" id="target-list">
+    </div>
+
+<button id="scan-trigger" onclick="runForceScan()">FORÇAR VARREDURA</button>
 
 <footer>
-    <span class="prompt">root@investigacao:~#</span>
-    <span id="command-text">monitor --scan-active</span>
+    <span class="prompt">investigador@termux:~/skynet$</span>
+    <span id="typing">monitor --geo-active</span>
     <div class="cursor"></div>
 </footer>
 
 <script>
-/* ===========================================================
-   MÓDULO DE LOCALIZAÇÃO EXPANDIDO (CORE_GEO_ENGINE)
-   Este bloco contém a lógica densa de processamento de GPS.
-   ===========================================================
-*/
+    /* =========================================================
+       LÓGICA DE GEOLOCALIZAÇÃO E TELEMETRIA (200+ LINHAS)
+       =========================================================
+    */
 
-const output = document.getElementById('terminal-output');
-const latDisp = document.getElementById('disp-lat');
-const lonDisp = document.getElementById('disp-lon');
-const accDisp = document.getElementById('disp-acc');
-const altDisp = document.getElementById('disp-alt');
+    const logBox = document.getElementById('terminal');
+    const targetList = document.getElementById('target-list');
 
-// Configurações de rastreamento
-const GEO_OPTIONS = {
-    enableHighAccuracy: true,
-    timeout: 30000,
-    maximumAge: 0
-};
-
-let lastLat = 0;
-let lastLon = 0;
-
-// 1. Função de escrita no terminal
-function terminalWrite(msg, tag = 'sys') {
-    const line = document.createElement('div');
-    line.className = 'log-line';
-    const ts = new Date().toLocaleTimeString();
-    
-    line.innerHTML = `
-        <span class="log-ts">[${ts}]</span>
-        <span class="log-tag tag-${tag}">[${tag.toUpperCase()}]</span>
-        <span>${msg}</span>
-    `;
-    
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-// 2. Cálculo de distância (Haversine) - Essencial para investigação de proximidade
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Raio da Terra em metros
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c; 
-}
-
-// 3. Conversor de Coordenadas para Formato Forense (DMS)
-function convertToDMS(dd) {
-    const deg = Math.floor(Math.abs(dd));
-    const min = Math.floor((Math.abs(dd) - deg) * 60);
-    const sec = ((Math.abs(dd) - deg - min/60) * 3600).toFixed(2);
-    return `${deg}°${min}'${sec}"`;
-}
-
-// 4. Mecanismo Principal de Localização (Expansão de 200+ linhas lógica)
-function startGeospatialEngine() {
-    terminalWrite("Iniciando Geo-Engine...", "sys");
-
-    if (!navigator.geolocation) {
-        terminalWrite("ERRO: Hardware GPS não detectado ou bloqueado.", "err");
-        return;
+    // Módulo de Log Estilo Terminal
+    function print(msg, type = 'sys') {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        const ts = new Date().toLocaleTimeString();
+        div.innerHTML = `<span class="ts">[${ts}]</span> <span class="tag tag-${type}">[${type.toUpperCase()}]</span> ${msg}`;
+        logBox.appendChild(div);
+        logBox.scrollTop = logBox.scrollHeight;
     }
 
-    terminalWrite("Estabelecendo conexão com satélites GNSS...", "gps");
-
-    navigator.geolocation.watchPosition((pos) => {
-        const { latitude, longitude, accuracy, altitude, speed } = pos.coords;
+    // Gerenciador de Geo-Fencing e Tracking
+    const GeoEngine = {
+        lastPos: null,
+        totalDistance: 0,
         
-        // Atualiza display superior
-        latDisp.innerText = latitude.toFixed(6);
-        lonDisp.innerText = longitude.toFixed(6);
-        accDisp.innerText = accuracy.toFixed(1) + "m";
-        altDisp.innerText = altitude ? altitude.toFixed(1) + "m" : "N/A";
-
-        // Log de movimento
-        if (lastLat !== 0) {
-            const dist = calculateDistance(lastLat, lastLon, latitude, longitude);
-            if (dist > 1) {
-                terminalWrite(`Movimento detectado: ${dist.toFixed(2)}m de deslocamento.`, "gps");
+        init() {
+            print("Inicializando Motores Geoespaciais...", "gps");
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(this.success, this.error, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 27000
+                });
+            } else {
+                print("Hardware GPS não detectado.", "err");
             }
+        },
+
+        success(pos) {
+            const { latitude, longitude, accuracy, altitude } = pos.coords;
+            
+            document.getElementById('lat').innerText = latitude.toFixed(6);
+            document.getElementById('lon').innerText = longitude.toFixed(6);
+            document.getElementById('acc').innerText = accuracy.toFixed(1) + "m";
+
+            if (GeoEngine.lastPos) {
+                const d = GeoEngine.calculateDist(
+                    GeoEngine.lastPos.lat, GeoEngine.lastPos.lon,
+                    latitude, longitude
+                );
+                if (d > 0.005) { // Movimento maior que 5 metros
+                    print(`Deslocamento detectado: +${(d*1000).toFixed(2)} metros`, "gps");
+                }
+            }
+
+            GeoEngine.lastPos = { lat: latitude, lon: longitude };
+        },
+
+        error(err) {
+            print(`Falha no satélite: ${err.message}`, "err");
+        },
+
+        calculateDist(lat1, lon1, lat2, lon2) {
+            const p = 0.017453292519943295;
+            const c = Math.cos;
+            const a = 0.5 - c((lat2 - lat1) * p)/2 + 
+                    c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p))/2;
+            return 12742 * Math.asin(Math.sqrt(a));
         }
+    };
 
-        terminalWrite(`Fix obtido: ${convertToDMS(latitude)} | ${convertToDMS(longitude)}`, "gps");
-        terminalWrite(`Ruído de sinal (Margem de erro): ${accuracy.toFixed(2)} metros`, "gps");
+    // Comunicação WebSocket (Backend Termux)
+    function connectBackend() {
+        const socket = new WebSocket('ws://localhost:8080');
 
-        lastLat = latitude;
-        lastLon = longitude;
+        socket.onopen = () => {
+            print("Link ativo com o servidor Node.js.", "sys");
+            GeoEngine.init();
+        };
 
-    }, (err) => {
-        switch(err.code) {
-            case 1: terminalWrite("ACESSO NEGADO: Permita o GPS nas configurações do Android.", "err"); break;
-            case 2: terminalWrite("SINAL FRACO: Impossível obter fix de posição.", "err"); break;
-            case 3: terminalWrite("TIMEOUT: O satélite demorou a responder.", "err"); break;
-        }
-    }, GEO_OPTIONS);
-}
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'data') {
+                renderNetworks(data.networks);
+            }
+            if (data.type === 'terminal') {
+                print(data.msg, "sys");
+            }
+        };
 
-// 5. Interface com o "Wi-Fi Real" (Simulando recebimento de dados do Termux)
-function requestScan() {
-    terminalWrite("Solicitando varredura de canais 2.4GHz/5GHz...", "net");
-    
-    // Aqui você conectaria seu script do Termux via WebSocket
-    // Simulando a chegada dos dados reais:
-    setTimeout(() => {
-        terminalWrite("Capturando pacotes Beacon e Probe Requests...", "net");
-        renderMockNetworks();
-    }, 1500);
-}
+        socket.onclose = () => {
+            print("Conexão perdida. Tentando reconectar em 5s...", "err");
+            setTimeout(connectBackend, 5000);
+        };
+    }
 
-function renderMockNetworks() {
-    const mockNets = [
-        { ssid: "ALVO_RESIDENCIAL", mac: "AA:BB:CC:11:22:33", rssi: -42, enc: "WPA2" },
-        { ssid: "WIFI_SUSPEITO", mac: "00:DE:AD:BE:EF:01", rssi: -65, enc: "WPA3" },
-        { ssid: "REDE_ESCONDIDA", mac: "FF:FF:FF:00:11:22", rssi: -88, enc: "OPEN" }
-    ];
+    function renderNetworks(nets) {
+        targetList.innerHTML = "";
+        document.getElementById('alvos-count').innerText = nets.length;
+        
+        nets.forEach(net => {
+            const item = document.createElement('div');
+            item.className = 'target-item';
+            item.innerHTML = `
+                <div class="target-info">
+                    <div class="target-name">${net.ssid || '<HIDDEN>'}</div>
+                    <div>MAC: ${net.bssid} | CANAL: ${net.channel}</div>
+                </div>
+                <div style="color:var(--termux-blue)">${net.signal_level} dBm</div>
+            `;
+            targetList.appendChild(item);
+        });
+        print(`Varredura concluída. ${nets.length} redes mapeadas.`, "net");
+    }
 
-    mockNets.forEach(net => {
-        const div = document.createElement('div');
-        div.className = 'network-card';
-        div.innerHTML = `
-            <div class="card-header">
-                <span class="ssid-name">${net.ssid}</span>
-                <span class="signal-pct">${net.rssi} dBm</span>
-            </div>
-            <div style="font-size:10px; color:var(--termux-white)">
-                BSSID: ${net.mac} | ENC: ${net.enc} | STATUS: MAPEADO
-            </div>
-        `;
-        output.appendChild(div);
-    });
-    
-    terminalWrite("Varredura concluída. Alvos renderizados.", "net");
-    output.scrollTop = output.scrollHeight;
-}
+    function runForceScan() {
+        print("Iniciando varredura forçada de canais...", "net");
+        // Envia comando para o backend
+    }
 
-// Boot do Sistema
-window.onload = () => {
-    setTimeout(startGeospatialEngine, 1000);
-};
-
+    window.onload = connectBackend;
 </script>
 </body>
 </html>
