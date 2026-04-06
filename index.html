@@ -1,78 +1,340 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA DE TELEMETRIA // SCAN PASSIVO</title>
     <style>
-        /* MANTIDO SEU ESTILO ORIGINAL */
-        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; font-size: 12px; }
-        .panel { border: 1px solid #00ff41; padding: 10px; margin-bottom: 10px; }
-        .net-item { border-bottom: 1px solid #111; padding: 10px; display: flex; justify-content: space-between; }
-        .btn-red { background: #500; color: #fff; border: 1px solid red; cursor: pointer; padding: 5px; }
-        .btn-green { background: #050; color: #fff; border: 1px solid #0f0; cursor: pointer; padding: 5px; }
-        #log { color: #888; font-size: 10px; height: 100px; overflow-y: auto; border: 1px solid #222; padding: 5px; }
+        :root {
+            --bg-color: #0a0a0a;
+            --text-main: #00ff41;
+            --text-muted: #4a7c59;
+            --border-color: #00ff41;
+            --danger: #ff3333;
+            --warning: #ffb000;
+            --panel-bg: #111111;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Cabeçalho */
+        header {
+            border-bottom: 2px solid var(--border-color);
+            padding: 15px;
+            text-align: center;
+            background-color: var(--panel-bg);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            font-size: 12px;
+            border-bottom: 1px dotted var(--text-muted);
+        }
+
+        /* Layout Principal */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Painel Lateral (Logs) */
+        .sidebar {
+            width: 30%;
+            border-right: 1px solid var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+        }
+
+        .section-title {
+            padding: 10px;
+            border-bottom: 1px solid var(--text-muted);
+            font-weight: bold;
+            background-color: #1a1a1a;
+        }
+
+        #log-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .log-entry { margin-bottom: 5px; }
+        .log-success { color: var(--text-main); }
+        .log-error { color: var(--danger); }
+        .log-warn { color: var(--warning); }
+
+        /* Área Principal (Redes) */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        /* Tabela de Redes */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--text-muted);
+        }
+
+        tr:hover { background-color: #1a1a1a; }
+
+        /* Indicadores Visuais */
+        .signal-bar {
+            height: 10px;
+            background-color: var(--text-muted);
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        .signal-high { width: 40px; background-color: var(--text-main); }
+        .signal-med { width: 25px; background-color: var(--warning); }
+        .signal-low { width: 10px; background-color: var(--danger); }
+
+        /* Botões Analíticos */
+        .btn-analyze {
+            background: transparent;
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            cursor: pointer;
+            padding: 5px 10px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-analyze:hover {
+            background: #00ffff;
+            color: #000;
+        }
+
+        /* Animação de Scan */
+        .scanning-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: var(--text-main);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 65, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0); }
+        }
+
+        /* Responsividade para Mobile */
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 30%; border-right: none; border-bottom: 1px solid var(--text-muted); }
+            th, td { padding: 8px 4px; font-size: 12px; }
+            .hide-mobile { display: none; }
+        }
     </style>
 </head>
 <body>
-    <div class="panel"><strong>SKYNET // INTERCEPTOR DE SINAL</strong></div>
-    <div id="log">> Aguardando Backend...</div>
-    <div id="list"></div>
+
+    <header>
+        MÓDULO DE INTERCEPTAÇÃO PASSIVA DE DADOS DE REDE
+    </header>
+
+    <div class="status-bar">
+        <span id="gps-status">[GPS: AGUARDANDO SINAL]</span>
+        <span id="ws-status">[UPLINK: DESCONECTADO]</span>
+        <span id="scan-status"><div class="scanning-indicator"></div> VARREDURA ATIVA</span>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="section-title">TERMINAL DE LOGS</div>
+            <div id="log-container">
+                <div class="log-entry">> Inicializando módulos de telemetria...</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="section-title">ALVOS MAPEADOS (802.11)</div>
+            <table id="network-table">
+                <thead>
+                    <tr>
+                        <th>SSID</th>
+                        <th>BSSID (MAC)</th>
+                        <th class="hide-mobile">CRIPTOGRAFIA</th>
+                        <th>SINAL (dBm)</th>
+                        <th>AÇÃO</th>
+                    </tr>
+                </thead>
+                <tbody id="network-list">
+                    </tbody>
+            </table>
+        </div>
+    </div>
 
     <script>
-        const log = document.getElementById('log');
-        const list = document.getElementById('list');
+        const logBox = document.getElementById('log-container');
+        const netList = document.getElementById('network-list');
+        const gpsStatus = document.getElementById('gps-status');
+        const wsStatus = document.getElementById('ws-status');
 
-        // --- ADICIONADO: FUNÇÃO PARA RODAR O GPS E APARECER O BALÃO ---
-        function solicitarGPS() {
+        // Função de Logging
+        function addLog(message, type = 'normal') {
+            const time = new Date().toLocaleTimeString();
+            let colorClass = '';
+            
+            if(type === 'success') colorClass = 'log-success';
+            if(type === 'error') colorClass = 'log-error';
+            if(type === 'warn') colorClass = 'log-warn';
+
+            logBox.innerHTML += `<div class="log-entry ${colorClass}">[${time}] ${message}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Módulo de Geolocalização (Otimizado)
+        function initGPS() {
+            addLog('> Solicitando acesso aos satélites...', 'warn');
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
+                navigator.geolocation.watchPosition(
                     (pos) => {
-                        log.innerHTML += `<div>[SUCESSO] GPS Ativo. Aguardando redes...</div>`;
+                        const lat = pos.coords.latitude.toFixed(4);
+                        const lon = pos.coords.longitude.toFixed(4);
+                        gpsStatus.innerHTML = `[GPS: TRACKING - LAT:${lat} LON:${lon}]`;
+                        gpsStatus.style.color = '#00ff41';
+                        addLog(`> Posição atualizada. Precisão: ${pos.coords.accuracy}m`, 'success');
                     },
                     (err) => {
-                        log.innerHTML += `<div>[ERRO] Ative o GPS no Android!</div>`;
+                        gpsStatus.innerHTML = `[GPS: FALHA DE SINAL]`;
+                        gpsStatus.style.color = '#ff3333';
+                        addLog(`> Erro GPS: ${err.message}`, 'error');
                     },
-                    { enableHighAccuracy: true }
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
+            } else {
+                addLog('> Hardware de GPS não suportado neste dispositivo.', 'error');
             }
         }
 
-        // MANTIDA SUA LÓGICA DE WEBSOCKET E INTERFACE
-        const socket = new WebSocket('ws://localhost:8080');
-
-        socket.onopen = () => { 
-            log.innerHTML += "<div>[SUCESSO] Link ativo. Buscando alvos...</div>"; 
-            solicitarGPS(); // Chama o GPS assim que conecta
-        };
-
-        socket.onmessage = (event) => {
-            const res = JSON.parse(event.data);
-            if (res.type === 'data') {
-                list.innerHTML = "";
-                res.networks.forEach(n => {
-                    list.innerHTML += `
-                    <div class="net-item">
-                        <div>
-                            <b>SSID: ${n.ssid}</b><br>
-                            MAC: ${n.bssid} | SINAL: ${n.signal_level}dBm
-                        </div>
-                        <div>
-                            <button class="btn-green" onclick="sendCmd('GET_PASSWORD', '${n.ssid}')">KEY</button>
-                            <button class="btn-red" onclick="sendCmd('DROP_NET', '${n.bssid}')">KILL</button>
-                        </div>
-                    </div>`;
-                });
-            }
-            if (res.type === 'terminal') { 
-                log.innerHTML += `<div>> ${res.msg}</div>`; 
-                log.scrollTop = log.scrollHeight; 
-            }
-        };
-
-        function sendCmd(action, target) {
-            socket.send(JSON.stringify({ action, bssid: target, ssid: target }));
+        // Avaliação Visual de Sinal
+        function getSignalBar(level) {
+            if (level >= -60) return '<div class="signal-bar signal-high"></div>';
+            if (level >= -80) return '<div class="signal-bar signal-med"></div>';
+            return '<div class="signal-bar signal-low"></div>';
         }
 
-        // Tenta pedir o GPS logo no início para garantir
-        window.onload = solicitarGPS;
+        // Função para Analisar Tráfego Passivo (Mockup para Interface)
+        function analyzeTraffic(bssid) {
+            addLog(`> Iniciando captura de pacotes passivos no alvo: ${bssid}...`, 'warn');
+            setTimeout(() => {
+                addLog(`> Análise concluída [${bssid}]. Nenhum dado não criptografado detectado.`, 'normal');
+            }, 2000);
+        }
+
+        // Módulo WebSocket (Comunicação com Backend)
+        function initWebSocket() {
+            try {
+                // Em um ambiente real, use 'wss://' para segurança
+                const socket = new WebSocket('ws://localhost:8080');
+
+                socket.onopen = () => {
+                    wsStatus.innerHTML = `[UPLINK: ESTABELECIDO]`;
+                    wsStatus.style.color = '#00ff41';
+                    addLog('> Conexão segura estabelecida com o terminal central.', 'success');
+                };
+
+                socket.onclose = () => {
+                    wsStatus.innerHTML = `[UPLINK: DESCONECTADO]`;
+                    wsStatus.style.color = '#ff3333';
+                    addLog('> Conexão perdida. Tentando reconectar em 5s...', 'error');
+                    setTimeout(initWebSocket, 5000);
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'network_data') {
+                            updateNetworkTable(data.payload);
+                        } else if (data.type === 'system_msg') {
+                            addLog(`> SYS: ${data.msg}`, 'warn');
+                        }
+                    } catch (e) {
+                        addLog('> Erro ao decodificar pacote de dados.', 'error');
+                    }
+                };
+            } catch (e) {
+                addLog(`> Falha ao iniciar socket: ${e.message}`, 'error');
+            }
+        }
+
+        // Atualização da Interface com os Dados
+        function updateNetworkTable(networks) {
+            netList.innerHTML = "";
+            networks.forEach(net => {
+                netList.innerHTML += `
+                    <tr>
+                        <td><strong>${net.ssid || '<HIDDEN>'}</strong></td>
+                        <td>${net.bssid}</td>
+                        <td class="hide-mobile">${net.encryption}</td>
+                        <td>${net.signal} dBm <br> ${getSignalBar(net.signal)}</td>
+                        <td>
+                            <button class="btn-analyze" onclick="analyzeTraffic('${net.bssid}')">ANALISAR METADADOS</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Inicialização do Sistema
+        window.onload = () => {
+            addLog('> Sistema bootado. Carregando dependências...');
+            initGPS();
+            initWebSocket();
+
+            // === CÓDIGO DE TESTE (MOCK) PARA VISUALIZAR A INTERFACE ===
+            // Remova isso quando conectar ao seu backend real
+            setTimeout(() => {
+                const mockData = [
+                    { ssid: 'REDE_ALVO_01', bssid: '00:14:22:01:23:45', encryption: 'WPA3-Personal', signal: -45 },
+                    { ssid: 'GUEST_WIFI', bssid: '04:BD:70:E1:92:11', encryption: 'WPA2-PSK', signal: -72 },
+                    { ssid: '', bssid: 'A0:B1:C2:D3:E4:F5', encryption: 'WEP', signal: -88 }
+                ];
+                updateNetworkTable(mockData);
+                addLog('> Varredura inicial concluída. 3 alvos detectados.', 'success');
+            }, 2000);
+        };
     </script>
 </body>
 </html>
