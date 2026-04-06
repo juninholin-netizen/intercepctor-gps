@@ -12,40 +12,61 @@
 </head>
 <body>
     <div class="panel"><strong>SKYNET // INTERCEPTOR DE SINAL</strong></div>
-    <div id="log">> Aguardando Backend...</div>
+    <div id="log">> Aguardando Permissão de Hardware...</div>
     <div id="list"></div>
 
     <script>
-        const socket = new WebSocket('ws://localhost:8080');
         const log = document.getElementById('log');
         const list = document.getElementById('list');
 
-        socket.onopen = () => { log.innerHTML += "<div>[SUCESSO] Link ativo. GPS Requerido.</div>"; };
-
-        socket.onmessage = (event) => {
-            const res = JSON.parse(event.data);
-            if (res.type === 'data') {
-                list.innerHTML = "";
-                res.networks.forEach(n => {
-                    list.innerHTML += `
-                    <div class="net-item">
-                        <div>
-                            <b>SSID: ${n.ssid}</b><br>
-                            MAC: ${n.bssid} | SINAL: ${n.signal_level}dBm
-                        </div>
-                        <div>
-                            <button class="btn-green" onclick="sendCmd('GET_PASSWORD', '${n.ssid}')">KEY</button>
-                            <button class="btn-red" onclick="sendCmd('DROP_NET', '${n.bssid}')">KILL</button>
-                        </div>
-                    </div>`;
-                });
+        // FUNÇÃO PARA ATIVAR O GPS (O balão vai aparecer agora)
+        function ativarGPS() {
+            if (navigator.geolocation) {
+                log.innerHTML += "<div>> Solicitando acesso ao GPS...</div>";
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        log.innerHTML += `<div style="color: #0f0">[SUCESSO] GPS Ativo: ${pos.coords.latitude}, ${pos.coords.longitude}</div>`;
+                        iniciarConexao(); // Só tenta conectar depois que o GPS liberar
+                    },
+                    (err) => {
+                        log.innerHTML += `<div style="color: red">[ERRO] Permissão negada ou GPS desligado.</div>`;
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                log.innerHTML += "<div>[ERRO] Seu navegador não suporta GPS.</div>";
             }
-            if (res.type === 'terminal') { log.innerHTML += `<div>> ${res.msg}</div>`; log.scrollTop = log.scrollHeight; }
-        };
-
-        function sendCmd(action, target) {
-            socket.send(JSON.stringify({ action, bssid: target, ssid: target }));
         }
+
+        function iniciarConexao() {
+            // Nota: localhost não funciona no celular. Use um IP real ou servidor online.
+            const socket = new WebSocket('ws://localhost:8080');
+
+            socket.onopen = () => { 
+                log.innerHTML += "<div>[SUCESSO] Backend Conectado.</div>"; 
+            };
+
+            socket.onerror = () => {
+                log.innerHTML += "<div style='color: orange'>> Erro de Conexão: Verifique se o servidor está rodando em localhost:8080.</div>";
+            };
+
+            socket.onmessage = (event) => {
+                const res = JSON.parse(event.data);
+                if (res.type === 'data') {
+                    list.innerHTML = "";
+                    res.networks.forEach(n => {
+                        list.innerHTML += `
+                        <div class="net-item">
+                            <div><b>SSID: ${n.ssid}</b><br>MAC: ${n.bssid}</div>
+                            <div><button class="btn-green">KEY</button></div>
+                        </div>`;
+                    });
+                }
+            };
+        }
+
+        // DISPARA O GPS ASSIM QUE ABRIR
+        window.onload = ativarGPS;
     </script>
 </body>
 </html>
