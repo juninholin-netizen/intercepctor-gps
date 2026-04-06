@@ -2,6 +2,7 @@
 <html>
 <head>
     <style>
+        /* MANTIDO SEU ESTILO ORIGINAL */
         body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; font-size: 12px; }
         .panel { border: 1px solid #00ff41; padding: 10px; margin-bottom: 10px; }
         .net-item { border-bottom: 1px solid #111; padding: 10px; display: flex; justify-content: space-between; }
@@ -12,61 +13,66 @@
 </head>
 <body>
     <div class="panel"><strong>SKYNET // INTERCEPTOR DE SINAL</strong></div>
-    <div id="log">> Aguardando Permissão de Hardware...</div>
+    <div id="log">> Aguardando Backend...</div>
     <div id="list"></div>
 
     <script>
         const log = document.getElementById('log');
         const list = document.getElementById('list');
 
-        // FUNÇÃO PARA ATIVAR O GPS (O balão vai aparecer agora)
-        function ativarGPS() {
+        // --- ADICIONADO: FUNÇÃO PARA RODAR O GPS E APARECER O BALÃO ---
+        function solicitarGPS() {
             if (navigator.geolocation) {
-                log.innerHTML += "<div>> Solicitando acesso ao GPS...</div>";
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
-                        log.innerHTML += `<div style="color: #0f0">[SUCESSO] GPS Ativo: ${pos.coords.latitude}, ${pos.coords.longitude}</div>`;
-                        iniciarConexao(); // Só tenta conectar depois que o GPS liberar
+                        log.innerHTML += `<div>[SUCESSO] GPS Ativo. Aguardando redes...</div>`;
                     },
                     (err) => {
-                        log.innerHTML += `<div style="color: red">[ERRO] Permissão negada ou GPS desligado.</div>`;
+                        log.innerHTML += `<div>[ERRO] Ative o GPS no Android!</div>`;
                     },
                     { enableHighAccuracy: true }
                 );
-            } else {
-                log.innerHTML += "<div>[ERRO] Seu navegador não suporta GPS.</div>";
             }
         }
 
-        function iniciarConexao() {
-            // Nota: localhost não funciona no celular. Use um IP real ou servidor online.
-            const socket = new WebSocket('ws://localhost:8080');
+        // MANTIDA SUA LÓGICA DE WEBSOCKET E INTERFACE
+        const socket = new WebSocket('ws://localhost:8080');
 
-            socket.onopen = () => { 
-                log.innerHTML += "<div>[SUCESSO] Backend Conectado.</div>"; 
-            };
+        socket.onopen = () => { 
+            log.innerHTML += "<div>[SUCESSO] Link ativo. Buscando alvos...</div>"; 
+            solicitarGPS(); // Chama o GPS assim que conecta
+        };
 
-            socket.onerror = () => {
-                log.innerHTML += "<div style='color: orange'>> Erro de Conexão: Verifique se o servidor está rodando em localhost:8080.</div>";
-            };
+        socket.onmessage = (event) => {
+            const res = JSON.parse(event.data);
+            if (res.type === 'data') {
+                list.innerHTML = "";
+                res.networks.forEach(n => {
+                    list.innerHTML += `
+                    <div class="net-item">
+                        <div>
+                            <b>SSID: ${n.ssid}</b><br>
+                            MAC: ${n.bssid} | SINAL: ${n.signal_level}dBm
+                        </div>
+                        <div>
+                            <button class="btn-green" onclick="sendCmd('GET_PASSWORD', '${n.ssid}')">KEY</button>
+                            <button class="btn-red" onclick="sendCmd('DROP_NET', '${n.bssid}')">KILL</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            if (res.type === 'terminal') { 
+                log.innerHTML += `<div>> ${res.msg}</div>`; 
+                log.scrollTop = log.scrollHeight; 
+            }
+        };
 
-            socket.onmessage = (event) => {
-                const res = JSON.parse(event.data);
-                if (res.type === 'data') {
-                    list.innerHTML = "";
-                    res.networks.forEach(n => {
-                        list.innerHTML += `
-                        <div class="net-item">
-                            <div><b>SSID: ${n.ssid}</b><br>MAC: ${n.bssid}</div>
-                            <div><button class="btn-green">KEY</button></div>
-                        </div>`;
-                    });
-                }
-            };
+        function sendCmd(action, target) {
+            socket.send(JSON.stringify({ action, bssid: target, ssid: target }));
         }
 
-        // DISPARA O GPS ASSIM QUE ABRIR
-        window.onload = ativarGPS;
+        // Tenta pedir o GPS logo no início para garantir
+        window.onload = solicitarGPS;
     </script>
 </body>
 </html>
