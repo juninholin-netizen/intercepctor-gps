@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; font-size: 12px; }
+        .panel { border: 1px solid #00ff41; padding: 10px; margin-bottom: 10px; }
+        .net-item { border-bottom: 1px solid #111; padding: 10px; display: flex; justify-content: space-between; }
+        .btn-red { background: #500; color: #fff; border: 1px solid red; cursor: pointer; padding: 5px; }
+        .btn-green { background: #050; color: #fff; border: 1px solid #0f0; cursor: pointer; padding: 5px; }
+        #log { color: #888; font-size: 10px; height: 100px; overflow-y: auto; border: 1px solid #222; padding: 5px; }
+    </style>
+</head>
+<body>
+    <div class="panel"><strong>SKYNET // INTERCEPTOR DE SINAL</strong></div>
+    <div id="log">> Aguardando Backend...</div>
+    <div id="list"></div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8080');
+        const log = document.getElementById('log');
+        const list = document.getElementById('list');
+
+        socket.onopen = () => { log.innerHTML += "<div>[SUCESSO] Link ativo. GPS Requerido.</div>"; };
+
+        socket.onmessage = (event) => {
+            const res = JSON.parse(event.data);
+            if (res.type === 'data') {
+                list.innerHTML = "";
+                res.networks.forEach(n => {
+                    list.innerHTML += `
+                    <div class="net-item">
+                        <div>
+                            <b>SSID: ${n.ssid}</b><br>
+                            MAC: ${n.bssid} | SINAL: ${n.signal_level}dBm
+                        </div>
+                        <div>
+                            <button class="btn-green" onclick="sendCmd('GET_PASSWORD', '${n.ssid}')">KEY</button>
+                            <button class="btn-red" onclick="sendCmd('DROP_NET', '${n.bssid}')">KILL</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            if (res.type === 'terminal') { log.innerHTML += `<div>> ${res.msg}</div>`; log.scrollTop = log.scrollHeight; }
+        };
+
+        function sendCmd(action, target) {
+            socket.send(JSON.stringify({ action, bssid: target, ssid: target }));
+        }
+    </script>
+</body>
+</html>
