@@ -3,309 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>~ $ termux-investigation-tool</title>
+    <title>Rael Dev - Optimizer Pro</title>
     <style>
         :root {
-            --termux-bg: #000000;
-            --termux-green: #00ff41;
-            --termux-blue: #5294e2;
-            --termux-white: #ffffff;
-            --termux-red: #ff5555;
-            --termux-yellow: #f1fa8c;
-            --termux-dim: #282a36;
+            --neon: #00f2ff;
+            --danger: #ff2d55;
+            --success: #00ff66;
+            --bg: #050505;
+            --card: #111;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            cursor: crosshair;
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg); color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; user-select: none;
         }
 
-        body {
-            background-color: var(--termux-bg);
-            color: var(--termux-green);
-            font-family: 'monospace', 'Courier New', Courier, monospace;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid var(--termux-dim);
+        /* Dashboard Principal */
+        #dashboard {
+            padding: 20px; display: flex; flex-direction: column; height: 100vh;
+            box-sizing: border-box; transition: opacity 0.5s ease;
         }
 
-        /* CABEÇALHO TERMUX */
-        header {
-            background-color: #1a1a1a;
-            padding: 5px 15px;
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--termux-green);
-            color: var(--termux-white);
+        header { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        header h1 { margin: 0; font-size: 1.4rem; letter-spacing: 2px; color: var(--neon); }
+        header span { font-size: 0.7rem; color: #666; }
+
+        /* Grade de Status */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid #222; }
+        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; font-family: monospace; }
+        .value-neon { color: var(--neon); }
+
+        /* Painel de Opções */
+        .options { background: var(--card); border-radius: 8px; padding: 15px; flex-grow: 1; }
+        .option-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .option-info h3 { margin: 0; font-size: 0.9rem; }
+        .option-info p { margin: 0; font-size: 0.7rem; color: #666; }
+
+        /* Toggle Fake */
+        .toggle {
+            width: 40px; height: 20px; background: #333; border-radius: 10px;
+            position: relative; cursor: pointer;
+        }
+        .toggle::after {
+            content: ''; position: absolute; width: 16px; height: 16px;
+            background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s;
+        }
+        .toggle.active { background: var(--neon); }
+        .toggle.active::after { left: 22px; }
+
+        /* Botão de Injeção */
+        .btn-container { padding: 20px 0; }
+        #inject-btn {
+            width: 100%; background: var(--neon); color: #000; border: none;
+            padding: 18px; border-radius: 8px; font-weight: 800; font-size: 1rem;
+            text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
         }
 
-        .ascii-logo {
-            font-size: 6px;
-            line-height: 6px;
-            color: var(--termux-blue);
-            margin: 10px;
-            white-space: pre;
+        /* Tela de Logs (Simulação LiveBoot) */
+        #log-screen {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 100; padding: 10px; box-sizing: border-box;
         }
-
-        /* GRID DE DADOS EM TEMPO REAL */
-        .telemetry-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            border-bottom: 1px solid var(--termux-dim);
-            background: #080808;
+        #log-container {
+            height: 100%; display: flex; flex-direction: column; justify-content: flex-end;
+            font-family: 'Consolas', 'Courier New', monospace; font-size: 10px; line-height: 1.2;
         }
+        .log-line { margin: 1px 0; white-space: nowrap; }
+        .c-red { color: var(--danger); }
+        .c-green { color: var(--success); }
+        .c-cyan { color: var(--neon); }
 
-        .telemetry-item {
-            padding: 8px;
-            border: 1px solid var(--termux-dim);
-            font-size: 10px;
+        .loader {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 60px; border: 2px solid #111; border-top-color: var(--neon);
+            border-radius: 50%; animation: spin 0.7s infinite linear;
         }
+        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
-        .label { color: var(--termux-white); opacity: 0.6; }
-        .value { color: var(--termux-yellow); font-weight: bold; }
-
-        /* TERMINAL DE OUTPUT */
-        #terminal {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            font-size: 11px;
-            background: rgba(0, 0, 0, 0.95);
-            line-height: 1.5;
-        }
-
-        .log-entry { margin-bottom: 5px; }
-        .ts { color: #888; margin-right: 5px; }
-        .tag { font-weight: bold; margin-right: 10px; }
-        .tag-sys { color: var(--termux-blue); }
-        .tag-gps { color: var(--termux-yellow); }
-        .tag-net { color: var(--termux-green); }
-        .tag-err { color: var(--termux-red); }
-
-        /* LISTAGEM DE ALVOS (WIFI) */
-        .target-list {
-            padding: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            border-top: 1px solid var(--termux-dim);
-        }
-
-        .target-item {
-            border-left: 3px solid var(--termux-green);
-            background: #111;
-            padding: 8px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .target-info { font-size: 10px; }
-        .target-name { color: var(--termux-white); font-weight: bold; }
-
-        /* BARRA DE COMANDO INFERIOR */
-        footer {
-            height: 40px;
-            background: #000;
-            border-top: 1px solid var(--termux-green);
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            font-size: 12px;
-        }
-
-        .prompt { color: var(--termux-white); margin-right: 10px; }
-        .cursor { width: 8px; height: 16px; background: var(--termux-green); animation: blink 0.8s infinite; }
-
-        @keyframes blink { 50% { opacity: 0; } }
-
-        /* BOTÃO FLUTUANTE DE SCAN */
-        #scan-trigger {
-            position: fixed;
-            bottom: 60px;
-            right: 20px;
-            background: transparent;
-            border: 1px solid var(--termux-green);
-            color: var(--termux-green);
-            padding: 10px 20px;
-            font-family: inherit;
-            text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-        }
-
-        #scan-trigger:active { background: var(--termux-green); color: #000; }
     </style>
 </head>
 <body>
 
-<header>
-    <span>GNU nano 8.7.1 - server.js (MODIFIED)</span>
-    <span>Investigação v4.2.0</span>
-</header>
+    <div id="dashboard">
+        <header>
+            <h1>RAEL DEV MOBILE</h1>
+            <span>V4.0 ULTIMATE PERFORMANCE</span>
+        </header>
 
-<div class="ascii-logo">
- ██████╗ ███████╗ █████╗ ██╗      ██████╗  ██████╗ ██████╗ ███████╗
- ██╔══██╗██╔════╝██╔══██╗██║     ██╔════╝ ██╔═══██╗██╔══██╗██╔════╝
- ██████╔╝█████╗  ███████║██║     ██║  ███╗██║   ██║██████╔╝█████╗  
- ██╔══██╗██╔══╝  ██╔══██║██║     ██║   ██║██║   ██║██╔══██╗██╔══╝  
- ██║  ██║███████╗██║  ██║███████╗╚██████╔╝╚██████╔╝██║  ██║███████╗
- ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝
-</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">CPU Usage</div>
+                <div class="stat-value" id="cpu-val">--%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Device FPS</div>
+                <div class="stat-value" id="fps-val">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">RAM Free</div>
+                <div class="stat-value value-neon" id="ram-val">-- MB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Temp</div>
+                <div class="stat-value" id="temp-val">--°C</div>
+            </div>
+        </div>
 
-<div class="telemetry-grid">
-    <div class="telemetry-item">
-        <span class="label">LAT:</span> <span id="lat" class="value">0.000000</span>
-    </div>
-    <div class="telemetry-item">
-        <span class="label">LON:</span> <span id="lon" class="value">0.000000</span>
-    </div>
-    <div class="telemetry-item">
-        <span class="label">PRECISÃO:</span> <span id="acc" class="value">0m</span>
-    </div>
-    <div class="telemetry-item">
-        <span class="label">ALVOS:</span> <span id="alvos-count" class="value">0</span>
-    </div>
-</div>
-
-<div id="terminal">
-    <div class="log-entry"><span class="ts">[16:59:01]</span> <span class="tag tag-sys">[SYS]</span> Conectado ao Núcleo SKYNET porta 8080.</div>
-</div>
-
-<div class="target-list" id="target-list">
-    </div>
-
-<button id="scan-trigger" onclick="runForceScan()">FORÇAR VARREDURA</button>
-
-<footer>
-    <span class="prompt">investigador@termux:~/skynet$</span>
-    <span id="typing">monitor --geo-active</span>
-    <div class="cursor"></div>
-</footer>
-
-<script>
-    /* =========================================================
-       LÓGICA DE GEOLOCALIZAÇÃO E TELEMETRIA (200+ LINHAS)
-       =========================================================
-    */
-
-    const logBox = document.getElementById('terminal');
-    const targetList = document.getElementById('target-list');
-
-    // Módulo de Log Estilo Terminal
-    function print(msg, type = 'sys') {
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        const ts = new Date().toLocaleTimeString();
-        div.innerHTML = `<span class="ts">[${ts}]</span> <span class="tag tag-${type}">[${type.toUpperCase()}]</span> ${msg}`;
-        logBox.appendChild(div);
-        logBox.scrollTop = logBox.scrollHeight;
-    }
-
-    // Gerenciador de Geo-Fencing e Tracking
-    const GeoEngine = {
-        lastPos: null,
-        totalDistance: 0,
-        
-        init() {
-            print("Inicializando Motores Geoespaciais...", "gps");
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(this.success, this.error, {
-                    enableHighAccuracy: true,
-                    maximumAge: 0,
-                    timeout: 27000
-                });
-            } else {
-                print("Hardware GPS não detectado.", "err");
-            }
-        },
-
-        success(pos) {
-            const { latitude, longitude, accuracy, altitude } = pos.coords;
-            
-            document.getElementById('lat').innerText = latitude.toFixed(6);
-            document.getElementById('lon').innerText = longitude.toFixed(6);
-            document.getElementById('acc').innerText = accuracy.toFixed(1) + "m";
-
-            if (GeoEngine.lastPos) {
-                const d = GeoEngine.calculateDist(
-                    GeoEngine.lastPos.lat, GeoEngine.lastPos.lon,
-                    latitude, longitude
-                );
-                if (d > 0.005) { // Movimento maior que 5 metros
-                    print(`Deslocamento detectado: +${(d*1000).toFixed(2)} metros`, "gps");
-                }
-            }
-
-            GeoEngine.lastPos = { lat: latitude, lon: longitude };
-        },
-
-        error(err) {
-            print(`Falha no satélite: ${err.message}`, "err");
-        },
-
-        calculateDist(lat1, lon1, lat2, lon2) {
-            const p = 0.017453292519943295;
-            const c = Math.cos;
-            const a = 0.5 - c((lat2 - lat1) * p)/2 + 
-                    c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p))/2;
-            return 12742 * Math.asin(Math.sqrt(a));
-        }
-    };
-
-    // Comunicação WebSocket (Backend Termux)
-    function connectBackend() {
-        const socket = new WebSocket('ws://localhost:8080');
-
-        socket.onopen = () => {
-            print("Link ativo com o servidor Node.js.", "sys");
-            GeoEngine.init();
-        };
-
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'data') {
-                renderNetworks(data.networks);
-            }
-            if (data.type === 'terminal') {
-                print(data.msg, "sys");
-            }
-        };
-
-        socket.onclose = () => {
-            print("Conexão perdida. Tentando reconectar em 5s...", "err");
-            setTimeout(connectBackend, 5000);
-        };
-    }
-
-    function renderNetworks(nets) {
-        targetList.innerHTML = "";
-        document.getElementById('alvos-count').innerText = nets.length;
-        
-        nets.forEach(net => {
-            const item = document.createElement('div');
-            item.className = 'target-item';
-            item.innerHTML = `
-                <div class="target-info">
-                    <div class="target-name">${net.ssid || '<HIDDEN>'}</div>
-                    <div>MAC: ${net.bssid} | CANAL: ${net.channel}</div>
+        <div class="options">
+            <div class="option-item">
+                <div class="option-info">
+                    <h3>Unlock 120 FPS</h3>
+                    <p>Forçar taxa de atualização máxima</p>
                 </div>
-                <div style="color:var(--termux-blue)">${net.signal_level} dBm</div>
-            `;
-            targetList.appendChild(item);
-        });
-        print(`Varredura concluída. ${nets.length} redes mapeadas.`, "net");
-    }
+                <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+            </div>
+            <div class="option-item">
+                <div class="option-info">
+                    <h3>GPU Turbo Boost</h3>
+                    <p>Otimizar renderização de shaders</p>
+                </div>
+                <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+            </div>
+            <div class="option-item">
+                <div class="option-info">
+                    <h3>Anti-Lag Engine</h3>
+                    <p>Reduzir latência de rede e processamento</p>
+                </div>
+                <div class="toggle" onclick="this.classList.toggle('active')"></div>
+            </div>
+        </div>
 
-    function runForceScan() {
-        print("Iniciando varredura forçada de canais...", "net");
-        // Envia comando para o backend
-    }
+        <div class="btn-container">
+            <button id="inject-btn">INJETAR SISTEMA</button>
+        </div>
+    </div>
 
-    window.onload = connectBackend;
-</script>
+    <div id="log-screen">
+        <div id="log-container"></div>
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        // Simulador de Stats
+        setInterval(() => {
+            document.getElementById('cpu-val').innerText = (Math.random() * 40 + 20).toFixed(1) + '%';
+            document.getElementById('fps-val').innerText = Math.floor(Math.random() * 5 + 58);
+            document.getElementById('ram-val').innerText = Math.floor(Math.random() * 500 + 1200) + ' MB';
+            document.getElementById('temp-val').innerText = (Math.random() * 2 + 36).toFixed(1) + '°C';
+        }, 1000);
+
+        const btn = document.getElementById('inject-btn');
+        const dash = document.getElementById('dashboard');
+        const logScreen = document.getElementById('log-screen');
+        const logContainer = document.getElementById('log-container');
+
+        const logs = [
+            "SYS: Initializing RaelDev kernel...",
+            "CORE: Overclocking Adreno GPU clusters",
+            "FPS: Setting display refresh to 120Hz",
+            "MEM: Purging non-critical background services",
+            "NET: Injecting low-latency socket patches",
+            "SYS: Disabling thermal throttling limits",
+            "BOOT: Executing bypass_security_init.sh",
+            "INFO: Optimized for Free Fire & Roblox",
+            "SUCCESS: Dalvik cache layers re-aligned"
+        ];
+
+        let isRunning = false;
+        const colors = ['c-cyan', 'c-green', 'c-red', ''];
+
+        function runLogs() {
+            if(!isRunning) return;
+            const fragment = document.createDocumentFragment();
+            for(let i=0; i<3; i++) {
+                const line = document.createElement('div');
+                line.className = `log-line ${colors[Math.floor(Math.random()*colors.length)]}`;
+                line.textContent = `[${Date.now().toString().slice(-6)}] ${logs[Math.floor(Math.random()*logs.length)]} -> 0x${Math.random().toString(16).slice(2,8).toUpperCase()}`;
+                fragment.appendChild(line);
+            }
+            logContainer.appendChild(fragment);
+            if(logContainer.childElementCount > 80) logContainer.removeChild(logContainer.firstChild);
+            requestAnimationFrame(runLogs);
+        }
+
+        btn.onclick = () => {
+            dash.style.opacity = '0';
+            setTimeout(() => {
+                dash.style.display = 'none';
+                logScreen.style.display = 'block';
+                isRunning = true;
+                requestAnimationFrame(runLogs);
+            }, 500);
+
+            // 20 Segundos de carregamento
+            setTimeout(() => {
+                isRunning = false;
+                logScreen.style.display = 'none';
+                dash.style.display = 'flex';
+                dash.style.opacity = '1';
+                
+                // Resultado Final
+                document.getElementById('fps-val').innerText = "120";
+                document.getElementById('fps-val').style.color = "var(--success)";
+                alert("SISTEMA INJETADO!\nPerformance: 120 FPS Ativo\nStatus: Rael Dev Mobile ON");
+            }, 20000);
+        };
+    </script>
 </body>
 </html>
